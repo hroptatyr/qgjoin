@@ -289,6 +289,10 @@ main(int argc, char *argv[])
 	/* proceed with fp2 */
 	fclose(fp1);
 
+	/* for streak track-keeping */
+	static size_t *strk;
+	static size_t zstrk;
+
 	while ((nrd = getline(&line, &llen, fp2)) > 0) {
 		uint_fast64_t qc[nfactor];
 		uint_fast8_t qs[nfactor];
@@ -326,8 +330,21 @@ main(int argc, char *argv[])
 
 		/* longest longest streaks */
 		size_t max = 0U;
+		size_t nstrk = 0U;
+
 		for (size_t i = 0U; i < countof(qs); i++) {
-			max = max > qs[i] ? max : qs[i];
+			if (qs[i] < max) {
+				continue;
+			} else if (UNLIKELY(qs[i] > max)) {
+				max = qs[i];
+				nstrk = 0U;
+			}
+			/* append to streak array */
+			if (UNLIKELY(nstrk >= zstrk)) {
+				zstrk = (zstrk * 2U) ?: 16U;
+				strk = realloc(strk, zstrk * sizeof(*strk));
+			}
+			strk[nstrk++] = i;
 		}
 
 		const double nom = (double)__builtin_ctzll(w);
@@ -338,21 +355,24 @@ main(int argc, char *argv[])
 			continue;
 		}
 
-		for (size_t i = 0U; i < countof(qs); i++) {
-			if (UNLIKELY(qs[i] >= max)) {
-				size_t plen = poff[i + 1U] - poff[i];
+		for (size_t j = 0U; j < nstrk; j++) {
+			const size_t i = strk[j];
+			size_t plen = poff[i + 1U] - poff[i];
 
-				fwrite(pool + poff[i], 1, plen, stdout);
-				fputc('\t', stdout);
-				fwrite(line, 1, nrd, stdout);
-				fputc('\t', stdout);
-				fprintf(stdout, "%zu", max);
-				fputc('\n', stdout);
-			}
+			fwrite(pool + poff[i], 1, plen, stdout);
+			fputc('\t', stdout);
+			fwrite(line, 1, nrd, stdout);
+			fputc('\t', stdout);
+			fprintf(stdout, "%zu", max);
+			fputc('\n', stdout);
 		}
 	}
 	fclose(fp2);
 	free(line);
+
+	if (zstrk) {
+		free(strk);
+	}
 
 	for (size_t i = 0U; i < countof(qgrams); i++) {
 		if (qgrams[i]) {
