@@ -159,16 +159,20 @@ hash5(const char *s, size_t z)
 		['y'] = 'Y' - '@',
 		['z'] = 'Z' - '@',
 	};
-	uint_fast32_t res = 0U;
+	uint_fast32_t res = tbl[(unsigned char)s[0U]];;
 
-	for (size_t i = 0U, j = 0U; i < z && j < 5U; i++) {
+	if (UNLIKELY(res == 0U || res == 31U)) {
+		return 0U;
+	}
+	for (size_t i = 1U, j = 1U, condens = 1U; i < z && j < 5U; i++) {
 		const uint_fast8_t h = tbl[(unsigned char)s[i]];
 
-		if (h) {
+		if (h > 0U && (h < 31U || !condens)) {
 			res <<= 4U;
 			res ^= h;
 			j++;
 		}
+		condens = h == 31U;
 	}
 	return res;
 }
@@ -277,7 +281,9 @@ main(int argc, char *argv[])
 			uint_fast32_t x = hash5(line + i, nrd - i);
 
 			/* store */
-			bang(x, f);
+			if (LIKELY(x)) {
+				bang(x, f);
+			}
 		}
 	}
 	/* proceed with fp2 */
@@ -296,14 +302,19 @@ main(int argc, char *argv[])
 		memset(qs, 0, sizeof(qs));
 		w = 1U;
 		nq = 0U;
-		for (size_t i = 0U; (ssize_t)(i + 5U) <= nrd; i++, w <<= 1U) {
+		for (size_t i = 0U; (ssize_t)(i + 5U) <= nrd; i++) {
 			/* build a 5-gram */
 			uint_fast32_t x = hash5(line + i, nrd - i);
+
+			if (UNLIKELY(!x)) {
+				continue;
+			}
 			/* look up factors in global qgram array */
 			for (size_t j = 0U; j < nqgrams[x]; j++) {
 				qc[qgrams[x][j] - 1U] |= w;
 			}
 			nq += nqgrams[x];
+			w <<= 1U;
 		}
 
 		/* find longest streaks */
