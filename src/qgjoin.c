@@ -316,6 +316,7 @@ Error: cannot open right input file");
 	static size_t zstrk;
 
 	uint_fast64_t *qc = malloc(nfactor * sizeof(*qc));
+	uint_fast8_t *cc = malloc(((nfactor / 8U) + 1U) * sizeof(*cc));
 
 	while ((nrd = getline(&line, &llen, fp2)) > 0) {
 		uint_fast64_t w;
@@ -325,6 +326,7 @@ Error: cannot open right input file");
 		line[nrd] = '\0';
 
 		memset(qc, 0, nfactor * sizeof(*qc));
+		memset(cc, 0, ((nfactor / 8U) + 1U) * sizeof(*cc));
 		w = 1U;
 		nq = 0U;
 
@@ -342,28 +344,42 @@ Error: cannot open right input file");
 			w <<= 1U;
 		}
 
+		/* make up candidates */
+		for (size_t i = 0U; i < n; i++) {
+			/* look up factors in global qgram array */
+			const qgram_t y = x[i];
+			for (size_t j = 0U; j < nqgrams[y]; j++) {
+				const size_t k = qgrams[y][j] - 1U;
+				cc[k / 8U] |= (uint_fast8_t)(1U << k % 8U);
+			}
+		}
+
 		/* find longest longest streaks */
 		size_t max = 3U;
 		size_t nstrk = 0U;
 
-		for (size_t i = 0U; i < nfactor; i++) {
-			size_t s;
+		for (size_t i = 0U; i < nfactor / 8U + 1U; i++) {
+			for (uint_fast8_t c = cc[i], j = 0U; c; c >>= 1U, j++) {
+				const size_t k = 8U * i + j;
+				size_t s;
 
-			if (LIKELY(!qc[i])) {
-				continue;
-			} else if (LIKELY((s = lstrk(qc[i])) < max)) {
-				/* nothing to see here */
-				continue;
-			} else if (UNLIKELY(s > max)) {
-				max = s;
-				nstrk = 0U;
+				if (LIKELY(!(c & 0b1U))) {
+					continue;
+				} else if (LIKELY((s = lstrk(qc[k])) < max)) {
+					/* nothing to see here */
+					continue;
+				} else if (UNLIKELY(s > max)) {
+					max = s;
+					nstrk = 0U;
+				}
+				/* append to streak array */
+				if (UNLIKELY(nstrk >= zstrk)) {
+					zstrk = (zstrk * 2U) ?: 16U;
+					strk = realloc(
+						strk, zstrk * sizeof(*strk));
+				}
+				strk[nstrk++] = k;
 			}
-			/* append to streak array */
-			if (UNLIKELY(nstrk >= zstrk)) {
-				zstrk = (zstrk * 2U) ?: 16U;
-				strk = realloc(strk, zstrk * sizeof(*strk));
-			}
-			strk[nstrk++] = i;
 		}
 
 		const double nom = (double)__builtin_ctzll(w);
@@ -390,6 +406,7 @@ Error: cannot open right input file");
 	free(line);
 
 	free(qc);
+	free(cc);
 
 	if (zstrk) {
 		free(strk);
