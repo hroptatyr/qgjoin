@@ -297,6 +297,10 @@ Error: cannot open right input file");
 		nrd -= line[nrd - 1U] == '\n';
 		line[nrd] = '\0';
 
+		if (UNLIKELY(nrd < 5U)) {
+			continue;
+		}
+
 		/* intern */
 		factor_t f = intern(line, nrd);
 		/* build all 5-grams */
@@ -324,6 +328,10 @@ Error: cannot open right input file");
 
 		nrd -= line[nrd - 1U] == '\n';
 		line[nrd] = '\0';
+
+		if (UNLIKELY(nrd < 5U)) {
+			continue;
+		}
 
 		memset(qc, 0, nfactor * sizeof(*qc));
 		memset(cc, 0, ((nfactor / 64U) + 1U) * sizeof(*cc));
