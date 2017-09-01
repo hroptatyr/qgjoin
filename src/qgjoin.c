@@ -67,31 +67,6 @@ error(const char *fmt, ...)
 }
 
 static qgram_t
-hash2(const char s[static 2U], size_t UNUSED(z))
-{
-	qgram_t res = 0U;
-	uint_fast8_t c0 = 0U;
-	uint_fast8_t c1 = 0U;
-
-	/* bit of string massage */
-	if (s[0U] >= ' ') {
-		if ((c0 = s[0U]) >= '`') {
-			c0 -= ' ';
-		}
-		c0 -= ' ';
-	}
-	/* again */
-	if (s[1U] >= ' ') {
-		if ((c1 = s[1U]) >= '`') {
-			c1 -= ' ';
-		}
-		c1 -= ' ';
-	}
-	res = c0 << 4U ^ c1;
-	return res;
-}
-
-static qgram_t
 hash5(const char *s, size_t z)
 {
 	static const uint_fast8_t tbl[256U] = {
