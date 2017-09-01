@@ -347,9 +347,11 @@ Error: cannot open right input file");
 		size_t nstrk = 0U;
 
 		for (size_t i = 0U; i < nfactor; i++) {
-			const size_t s = lstrk(qc[i]);
+			size_t s;
 
-			if (LIKELY(s < max)) {
+			if (LIKELY(!qc[i])) {
+				continue;
+			} else if (LIKELY((s = lstrk(qc[i])) < max)) {
 				/* nothing to see here */
 				continue;
 			} else if (UNLIKELY(s > max)) {
