@@ -343,7 +343,7 @@ Error: cannot open right input file");
 		}
 
 		/* find longest longest streaks */
-		size_t max = 2U;
+		size_t max = 3U;
 		size_t nstrk = 0U;
 
 		for (size_t i = 0U; i < nfactor; i++) {
