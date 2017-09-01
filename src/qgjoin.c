@@ -316,7 +316,7 @@ Error: cannot open right input file");
 	static size_t zstrk;
 
 	uint_fast64_t *qc = malloc(nfactor * sizeof(*qc));
-	uint_fast8_t *cc = malloc(((nfactor / 8U) + 1U) * sizeof(*cc));
+	uint_fast64_t *cc = malloc(((nfactor / 64U) + 1U) * sizeof(*cc));
 
 	while ((nrd = getline(&line, &llen, fp2)) > 0) {
 		uint_fast64_t w;
@@ -326,7 +326,7 @@ Error: cannot open right input file");
 		line[nrd] = '\0';
 
 		memset(qc, 0, nfactor * sizeof(*qc));
-		memset(cc, 0, ((nfactor / 8U) + 1U) * sizeof(*cc));
+		memset(cc, 0, ((nfactor / 64U) + 1U) * sizeof(*cc));
 		w = 1U;
 		nq = 0U;
 
@@ -350,7 +350,7 @@ Error: cannot open right input file");
 			const qgram_t y = x[i];
 			for (size_t j = 0U; j < nqgrams[y]; j++) {
 				const size_t k = qgrams[y][j] - 1U;
-				cc[k / 8U] |= (uint_fast8_t)(1U << k % 8U);
+				cc[k / 64U] |= (uint_fast64_t)(1ULL << k % 64U);
 			}
 		}
 
@@ -358,9 +358,9 @@ Error: cannot open right input file");
 		size_t max = 3U;
 		size_t nstrk = 0U;
 
-		for (size_t i = 0U; i < nfactor / 8U + 1U; i++) {
-			for (uint_fast8_t c = cc[i], j = 0U; c; c >>= 1U, j++) {
-				const size_t k = 8U * i + j;
+		for (size_t i = 0U; i <= nfactor / 64U; i++) {
+			for (uint_fast64_t c = cc[i], j = 0U; c; c >>= 1U, j++) {
+				const size_t k = 64U * i + j;
 				size_t s;
 
 				if (LIKELY(!(c & 0b1U))) {
