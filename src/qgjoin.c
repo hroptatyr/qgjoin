@@ -46,6 +46,8 @@
 #include <math.h>
 #include "nifty.h"
 
+typedef uint_fast32_t qgram_t;
+
 
 static void
 __attribute__((format(printf, 1, 2)))
@@ -64,10 +66,10 @@ error(const char *fmt, ...)
 	return;
 }
 
-static uint_fast32_t
+static qgram_t
 hash2(const char s[static 2U], size_t UNUSED(z))
 {
-	uint_fast32_t res = 0U;
+	qgram_t res = 0U;
 	uint_fast8_t c0 = 0U;
 	uint_fast8_t c1 = 0U;
 
@@ -89,7 +91,7 @@ hash2(const char s[static 2U], size_t UNUSED(z))
 	return res;
 }
 
-static uint_fast32_t
+static qgram_t
 hash5(const char *s, size_t z)
 {
 	static const uint_fast8_t tbl[256U] = {
@@ -159,7 +161,7 @@ hash5(const char *s, size_t z)
 		['y'] = 'Y' - '@',
 		['z'] = 'Z' - '@',
 	};
-	uint_fast32_t res = tbl[(unsigned char)s[0U]];;
+	qgram_t res = tbl[(unsigned char)s[0U]];;
 
 	if (UNLIKELY(res == 0U || res == 31U)) {
 		return 0U;
@@ -215,7 +217,7 @@ intern(const char *str, size_t len)
 }
 
 static int
-bang(uint_fast32_t h, factor_t f)
+bang(qgram_t h, factor_t f)
 {
 	if (UNLIKELY(nqgrams[h] >= zqgrams[h])) {
 		zqgrams[h] = (zqgrams[h] * 2U) ?: 64U;
@@ -278,7 +280,7 @@ main(int argc, char *argv[])
 
 		for (size_t i = 0U; (ssize_t)(i + 5U) <= nrd; i++) {
 			/* build a 5-gram */
-			uint_fast32_t x = hash5(line + i, nrd - i);
+			qgram_t x = hash5(line + i, nrd - i);
 
 			/* store */
 			if (LIKELY(x)) {
@@ -308,7 +310,7 @@ main(int argc, char *argv[])
 		nq = 0U;
 		for (size_t i = 0U; (ssize_t)(i + 5U) <= nrd; i++) {
 			/* build a 5-gram */
-			uint_fast32_t x = hash5(line + i, nrd - i);
+			qgram_t x = hash5(line + i, nrd - i);
 
 			if (UNLIKELY(!x)) {
 				continue;
