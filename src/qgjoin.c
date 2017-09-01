@@ -394,7 +394,7 @@ Error: cannot open right input file");
 			}
 		}
 
-		if (max-- < 3U) {
+		if (max < 3U) {
 			continue;
 		}
 
