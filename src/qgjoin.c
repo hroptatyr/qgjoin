@@ -49,7 +49,7 @@
 typedef uint_fast32_t qgram_t;
 
 #if !defined ILEAVE
-# define ILEAVE		3U
+# define ILEAVE		4U
 #elif ILEAVE < 3U || ILEAVE > 5U
 # error ILEAVE must be 3, 4 or 5
 #endif
