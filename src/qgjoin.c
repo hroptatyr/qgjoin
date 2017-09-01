@@ -311,17 +311,18 @@ Error: cannot open right input file");
 	static size_t *strk;
 	static size_t zstrk;
 
+	uint_fast64_t *qc = malloc(nfactor * sizeof(*qc));
+	uint_fast8_t *qs = malloc(nfactor * sizeof(*qs));
+
 	while ((nrd = getline(&line, &llen, fp2)) > 0) {
-		uint_fast64_t qc[nfactor];
-		uint_fast8_t qs[nfactor];
 		uint_fast64_t w;
 		size_t nq;
 
 		nrd -= line[nrd - 1U] == '\n';
 		line[nrd] = '\0';
 
-		memset(qc, 0, sizeof(qc));
-		memset(qs, 0, sizeof(qs));
+		memset(qc, 0, nfactor * sizeof(*qc));
+		memset(qs, 0, nfactor * sizeof(*qs));
 		w = 1U;
 		nq = 0U;
 
@@ -340,7 +341,7 @@ Error: cannot open right input file");
 		}
 
 		/* find longest streaks */
-		for (size_t i = 0U; i < countof(qc); i++) {
+		for (size_t i = 0U; i < nfactor; i++) {
 			if (UNLIKELY(qc[i])) {
 				qs[i] = lstrk(qc[i]);
 			}
@@ -350,7 +351,7 @@ Error: cannot open right input file");
 		size_t max = 0U;
 		size_t nstrk = 0U;
 
-		for (size_t i = 0U; i < countof(qs); i++) {
+		for (size_t i = 0U; i < nfactor; i++) {
 			if (qs[i] < max) {
 				continue;
 			} else if (UNLIKELY(qs[i] > max)) {
@@ -387,6 +388,9 @@ Error: cannot open right input file");
 	}
 	fclose(fp2);
 	free(line);
+
+	free(qc);
+	free(qs);
 
 	if (zstrk) {
 		free(strk);
