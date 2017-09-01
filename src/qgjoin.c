@@ -390,11 +390,9 @@ Error: cannot open right input file");
 			}
 		}
 
-		const double nom = (double)__builtin_ctzll(w);
-		double sco = (double)max / nom;
-		double ref = nom / sqrt((double)nq);
+		const double sco = (double)max / (double)n;
 
-		if (max-- < 3U || sco + ref < 1) {
+		if (max-- < 3U) {
 			continue;
 		}
 
@@ -405,6 +403,8 @@ Error: cannot open right input file");
 			fwrite(pool + poff[i], 1, plen, stdout);
 			fputc('\t', stdout);
 			fwrite(line, 1, nrd, stdout);
+			fputc('\t', stdout);
+			fprintf(stdout, "%f", sco);
 			fputc('\t', stdout);
 			fprintf(stdout, "%zu", max);
 			fputc('\n', stdout);
