@@ -159,7 +159,9 @@ mkqgrams(qgram_t *restrict r, const char *s, size_t z)
 		condens = h < 0;
 	}
 	x &= (1U << ILEAVE * 5 + (ILEAVE < 5)) - 1U;
-	r[n] = x;
+	if (r) {
+		r[n] = x;
+	}
 	n += !!x;
 	/* keep going */
 	for (; i < z; i++) {
@@ -178,7 +180,9 @@ mkqgrams(qgram_t *restrict r, const char *s, size_t z)
 			j++;
 		}
 		condens = h < 0;
-		r[n] = x;
+		if (r) {
+			r[n] = x;
+		}
 		n += h > 0 || !condens;
 	}
 	return n;
@@ -390,8 +394,6 @@ Error: cannot open right input file");
 			}
 		}
 
-		const double sco = (double)max / (double)n;
-
 		if (max-- < 3U) {
 			continue;
 		}
@@ -399,14 +401,17 @@ Error: cannot open right input file");
 		for (size_t j = 0U; j < nstrk; j++) {
 			const size_t i = strk[j];
 			size_t plen = poff[i + 1U] - poff[i];
+			const size_t m = mkqgrams(NULL, pool + poff[i], plen);
 
 			fwrite(pool + poff[i], 1, plen, stdout);
 			fputc('\t', stdout);
 			fwrite(line, 1, nrd, stdout);
 			fputc('\t', stdout);
-			fprintf(stdout, "%f", sco);
-			fputc('\t', stdout);
 			fprintf(stdout, "%zu", max);
+			fputc('\t', stdout);
+			fprintf(stdout, "%zu", m);
+			fputc('\t', stdout);
+			fprintf(stdout, "%zu", n);
 			fputc('\n', stdout);
 		}
 	}
