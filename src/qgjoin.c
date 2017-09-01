@@ -66,13 +66,14 @@ error(const char *fmt, ...)
 	return;
 }
 
-static qgram_t
-hash5(const char *s, size_t z)
+static size_t
+mkqgrams(qgram_t *restrict r, const char *s, size_t z)
 {
-	static const uint_fast8_t tbl[256U] = {
-		[' '] = 31,
-		['-'] = 31,
-		['_'] = 31,
+/* build all qgrams from S of length Z and store in R */
+	static const int_fast8_t tbl[256U] = {
+		[' '] = -1,
+		['-'] = -1,
+		['_'] = -1,
 		['0'] = 'O' - '@',
 		['1'] = 'I' - '@',
 		['2'] = 'Z' - '@',
@@ -136,22 +137,34 @@ hash5(const char *s, size_t z)
 		['y'] = 'Y' - '@',
 		['z'] = 'Z' - '@',
 	};
-	qgram_t res = tbl[(unsigned char)s[0U]];;
+	qgram_t x = 0U;
+	size_t n = 0U;
+	size_t condens;
+	size_t i, j;
 
-	if (UNLIKELY(res == 0U || res == 31U)) {
-		return 0U;
-	}
-	for (size_t i = 1U, j = 1U, condens = 1U; i < z && j < 5U; i++) {
-		const uint_fast8_t h = tbl[(unsigned char)s[i]];
+	for (i = 0U, j = 0U, condens = 1U; i < z && j < 5U; i++) {
+		const int_fast8_t h = tbl[(unsigned char)s[i]];
 
-		if (h > 0U && (h < 31U || !condens)) {
-			res <<= 4U;
-			res ^= h;
-			j++;
-		}
-		condens = h == 31U;
+		x <<= 4U * (h > 0 || !condens);
+		x ^= h * (h > 0);
+		j += h > 0 || !condens;
+		condens = h < 0;
 	}
-	return res;
+	r[n] = x;
+	n += !!x;
+	/* keep going */
+	for (; i < z; i++) {
+		const int_fast8_t h = tbl[(unsigned char)s[i]];
+
+		x ^= x & 0b111110000000000000000U;
+		x <<= 4U * (h > 0 || !condens);
+		x ^= h * (h > 0);
+		j += h > 0 || !condens;
+		condens = h < 0;
+		r[n] = x;
+		n += h > 0 || !condens;
+	}
+	return n;
 }
 
 
@@ -265,15 +278,13 @@ Error: cannot open right input file");
 
 		/* intern */
 		factor_t f = intern(line, nrd);
+		/* build all 5-grams */
+		qgram_t x[nrd - 5U + 1];
+		const size_t n = mkqgrams(x, line, nrd);
 
-		for (size_t i = 0U; (ssize_t)(i + 5U) <= nrd; i++) {
-			/* build a 5-gram */
-			qgram_t x = hash5(line + i, nrd - i);
-
+		for (size_t i = 0U; i < n; i++) {
 			/* store */
-			if (LIKELY(x)) {
-				bang(x, f);
-			}
+			bang(x[i], f);
 		}
 	}
 	/* proceed with fp2 */
@@ -296,18 +307,18 @@ Error: cannot open right input file");
 		memset(qs, 0, sizeof(qs));
 		w = 1U;
 		nq = 0U;
-		for (size_t i = 0U; (ssize_t)(i + 5U) <= nrd; i++) {
-			/* build a 5-gram */
-			qgram_t x = hash5(line + i, nrd - i);
 
-			if (UNLIKELY(!x)) {
-				continue;
-			}
+		/* build all 5-grams */
+		qgram_t x[nrd - 5U + 1U];
+		const size_t n = mkqgrams(x, line, nrd);
+
+		for (size_t i = 0U; i < n; i++) {
 			/* look up factors in global qgram array */
-			for (size_t j = 0U; j < nqgrams[x]; j++) {
-				qc[qgrams[x][j] - 1U] |= w;
+			const qgram_t y = x[i];
+			for (size_t j = 0U; j < nqgrams[y]; j++) {
+				qc[qgrams[y][j] - 1U] |= w;
 			}
-			nq += nqgrams[x];
+			nq += nqgrams[y];
 			w <<= 1U;
 		}
 
