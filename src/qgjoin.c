@@ -228,6 +228,7 @@ int
 main(int argc, char *argv[])
 {
 	yuck_t argi[1U];
+	FILE *fp1, *fp2;
 	int rc = 0;
 
 	if (yuck_parse(argi, argc, argv)) {
@@ -235,12 +236,24 @@ main(int argc, char *argv[])
 		goto out;
 	}
 
-	FILE *fp1, *fp2;
-	if (UNLIKELY((fp1 = fopen(argi->args[0U], "r")) == NULL)) {
+	if (!argi->nargs) {
+		errno = 0, error("\
+Error: left input file not given");
 		rc = 1;
 		goto out;
-	} else if (UNLIKELY((fp2 = fopen(argi->args[1U], "r")) == NULL)) {
+	} else if (UNLIKELY((fp1 = fopen(argi->args[0U], "r")) == NULL)) {
+		error("\
+Error: cannot open left input file");
+		rc = 1;
+		goto out;
+	} else if (argi->nargs == 1U) {
 		fp2 = stdin;
+	} else if (UNLIKELY((fp2 = fopen(argi->args[1U], "r")) == NULL)) {
+		error("\
+Error: cannot open right input file");
+		rc = 1;
+		fclose(fp1);
+		goto out;
 	}
 
 	char *line = NULL;
