@@ -48,12 +48,6 @@
 
 typedef uint_fast32_t qgram_t;
 
-#if !defined ILEAVE
-# define ILEAVE		4U
-#elif ILEAVE < 3U || ILEAVE > 5U
-# error ILEAVE must be 3, 4 or 5
-#endif
-
 
 static void
 __attribute__((format(printf, 1, 2)))
@@ -152,13 +146,13 @@ mkqgrams(qgram_t *restrict r, const char *s, size_t z)
 		const int_fast8_t h = tbl[(unsigned char)s[i]];
 
 		if (h > 0 || !condens) {
-			x <<= ILEAVE;
+			x <<= 4U;
 			x ^= h & 0b11111U;
 			j++;
 		}
 		condens = h < 0;
 	}
-	x &= (1U << ILEAVE * 5 + (ILEAVE < 5)) - 1U;
+	x &= (1U << 21U) - 1U;
 	if (r) {
 		r[n] = x;
 	}
@@ -167,15 +161,9 @@ mkqgrams(qgram_t *restrict r, const char *s, size_t z)
 	for (; i < z; i++) {
 		const int_fast8_t h = tbl[(unsigned char)s[i]];
 
-#if ILEAVE == 3
-		x ^= x & 0b1111000000000000U;
-#elif ILEAVE == 4
 		x ^= x & 0b111110000000000000000U;
-#elif ILEAVE == 5
-		x ^= x & 0b1111100000000000000000000U;
-#endif
 		if (h > 0 || !condens) {
-			x <<= ILEAVE;
+			x <<= 4U;
 			x ^= h & 0b11111U;
 			j++;
 		}
@@ -199,9 +187,9 @@ static factor_t ipool;
 static size_t *poff;
 static size_t zpoff;
 
-static factor_t *qgrams[1U << (ILEAVE * 5 + (ILEAVE < 5))];
-static size_t zqgrams[1U << (ILEAVE * 5 + (ILEAVE < 5))];
-static size_t nqgrams[1U << (ILEAVE * 5 + (ILEAVE < 5))];
+static factor_t *qgrams[1U << 21U];
+static size_t zqgrams[1U << 21U];
+static size_t nqgrams[1U << 21U];
 
 static factor_t
 intern(const char *str, size_t len)
