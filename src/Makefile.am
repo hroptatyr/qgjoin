@@ -26,6 +26,11 @@ qgjoin_SOURCES = qgjoin.c qgjoin.yuck
 qgjoin_SOURCES += version.c version.h
 BUILT_SOURCES += qgjoin.yucc
 
+bin_PROGRAMS += qgstat
+qgstat_SOURCES = qgstat.c qgstat.yuck
+qgstat_SOURCES += version.c version.h
+BUILT_SOURCES += qgstat.yucc
+
 
 ## version rules
 version.c: version.c.in $(top_builddir)/.version
