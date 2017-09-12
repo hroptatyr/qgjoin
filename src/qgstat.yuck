@@ -1,0 +1,3 @@
+Usage: qgrams < FILE
+
+Index FILE by the qgrams of its lines.
