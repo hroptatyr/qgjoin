@@ -317,6 +317,7 @@ Error: cannot open right input file");
 	while ((nrd = getline(&line, &llen, fp2)) > 0) {
 		uint_fast64_t w;
 		size_t nq;
+		double qq;
 
 		nrd -= line[nrd - 1U] == '\n';
 		line[nrd] = '\0';
@@ -329,6 +330,7 @@ Error: cannot open right input file");
 		memset(cc, 0, ((nfactor / 64U) + 1U) * sizeof(*cc));
 		w = 1U;
 		nq = 0U;
+		qq = 0.;
 
 		/* build all 5-grams */
 		qgram_t x[nrd - 5U + 1U];
@@ -341,6 +343,7 @@ Error: cannot open right input file");
 				qc[qgrams[y][j] - 1U] |= w;
 			}
 			nq += nqgrams[y];
+			qq += 1. / (double)nqgrams[y];
 			w <<= 1U;
 		}
 
@@ -355,8 +358,9 @@ Error: cannot open right input file");
 		}
 
 		/* find longest longest streaks */
-		size_t max = 3U;
+		size_t max = 2U;
 		size_t nstrk = 0U;
+		uint_fast64_t maxs = 0U;
 
 		for (size_t i = 0U; i <= nfactor / 64U; i++) {
 			for (uint_fast64_t c = cc[i], j = 0U; c; c >>= 1U, j++) {
@@ -371,6 +375,7 @@ Error: cannot open right input file");
 				} else if (UNLIKELY(s > max)) {
 					max = s;
 					nstrk = 0U;
+					maxs = qc[k];
 				}
 				/* append to streak array */
 				if (UNLIKELY(nstrk >= zstrk)) {
@@ -384,6 +389,18 @@ Error: cannot open right input file");
 
 		if (max < 3U) {
 			continue;
+		}
+
+		size_t mq = 0U;
+		double oq = 0.;
+
+		for (size_t j = 0U; maxs; j++, maxs >>= 1U) {
+			if (!(maxs & 0b1U)) {
+				continue;
+			}
+			const qgram_t y = x[j];
+			mq += nqgrams[y];
+			oq += 1. / (double)nqgrams[y];
 		}
 
 		for (size_t j = 0U; j < nstrk; j++) {
@@ -400,6 +417,14 @@ Error: cannot open right input file");
 			fprintf(stdout, "%zu", m);
 			fputc('\t', stdout);
 			fprintf(stdout, "%zu", n);
+			fputc('\t', stdout);
+			fprintf(stdout, "%zu", mq);
+			fputc('\t', stdout);
+			fprintf(stdout, "%zu", nq);
+			fputc('\t', stdout);
+			fprintf(stdout, "%g", oq);
+			fputc('\t', stdout);
+			fprintf(stdout, "%g", qq);
 			fputc('\n', stdout);
 		}
 	}
