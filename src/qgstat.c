@@ -187,50 +187,12 @@ mkstring(qgram_t q)
 }
 
 
-typedef size_t factor_t;
-
-static char *pool;
-static size_t npool;
-static size_t zpool;
-static factor_t ipool;
-#define nfactor	ipool
-static size_t *poff;
-static size_t zpoff;
-
-static factor_t *qgrams[1U << 25U];
-static size_t zqgrams[1U << 25U];
 static size_t nqgrams[1U << 25U];
 
-static factor_t
-intern(const char *str, size_t len)
-{
-	factor_t r = 0U;
-
-	if (UNLIKELY(npool + len >= zpool)) {
-		zpool = (zpool * 2U) ?: 4096U;
-		pool = realloc(pool, zpool * sizeof(*pool));
-	}
-	/* copy */
-	memcpy(pool + npool, str, len);
-	npool += len;
-
-	if (UNLIKELY(ipool >= zpoff)) {
-		zpoff = (zpoff * 2U) ?: 512U;
-		poff = realloc(poff, zpoff * sizeof(*poff));
-		poff[0U] = 0U;
-	}
-	poff[r = ++ipool] = npool;
-	return r;
-}
-
 static int
-bang(qgram_t h, factor_t f)
+bang(qgram_t h)
 {
-	if (UNLIKELY(nqgrams[h] >= zqgrams[h])) {
-		zqgrams[h] = (zqgrams[h] * 2U) ?: 64U;
-		qgrams[h] = realloc(qgrams[h], zqgrams[h] * sizeof(*qgrams[h]));
-	}
-	qgrams[h][nqgrams[h]++] = f;
+	nqgrams[h]++;
 	return 0;
 }
 
@@ -259,35 +221,25 @@ main(int argc, char *argv[])
 			continue;
 		}
 
-		/* intern */
-		factor_t f = intern(line, nrd);
 		/* build all 5-grams */
 		qgram_t x[nrd - 5U + 1];
 		const size_t n = mkqgrams(x, line, nrd);
 
 		for (size_t i = 0U; i < n; i++) {
 			/* store */
-			bang(x[i], f);
+			bang(x[i]);
 		}
 	}
 	/* proceed with fp2 */
 	fclose(stdin);
 
-	for (size_t i = 0U; i < countof(qgrams); i++) {
+	for (size_t i = 0U; i < countof(nqgrams); i++) {
 		if (nqgrams[i]) {
 			const char *x = mkstring(i);
 			printf("%s\t%zu\n", x, nqgrams[i]);
 		}
 	}
 	free(line);
-
-	for (size_t i = 0U; i < countof(qgrams); i++) {
-		if (qgrams[i]) {
-			free(qgrams[i]);
-		}
-	}
-	free(pool);
-	free(poff);
 
 out:
 	yuck_free(argi);
