@@ -1,3 +1,5 @@
 Usage: cprfx < FILE
 
 For sorted lines in FILE count and print prefixes.
+
+  -v, --verbose         Print lines which are prefixes to themselves.

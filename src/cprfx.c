@@ -55,6 +55,8 @@
 #endif	/* HAVE_DFP754_H */
 #include "nifty.h"
 
+static size_t thresh = 1U;
+
 
 static size_t
 prnt(const char *str, size_t len, size_t *restrict strk, size_t n)
@@ -62,7 +64,7 @@ prnt(const char *str, size_t len, size_t *restrict strk, size_t n)
 	size_t s = 0U;
 
 	for (size_t j = len; j > n; j--) {
-		if (!strk[j]) {
+		if (strk[j] <= thresh) {
 			continue;
 		}
 		fwrite(str, 1, j, stdout);
@@ -142,6 +144,8 @@ main(int argc, char *argv[])
 		rc = 1;
 		goto out;
 	}
+
+	thresh -= !!argi->verbose_flag;
 
 	rc = cprfx(stdin) < 0;
 
