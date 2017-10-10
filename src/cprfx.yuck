@@ -1,0 +1,3 @@
+Usage: cprfx < FILE
+
+For sorted lines in FILE count and print prefixes.
