@@ -45,24 +45,39 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <errno.h>
-#include <sys/socket.h>
-#include <fcntl.h>
-#include <sys/time.h>
-#include <time.h>
 #include <assert.h>
 #if defined HAVE_DFP754_H
 # include <dfp754.h>
 #endif	/* HAVE_DFP754_H */
 #include "nifty.h"
 
+static size_t thresh = 1U;
+
 
+static void
+__attribute__((format(printf, 1, 2)))
+error(const char *fmt, ...)
+{
+	va_list vap;
+	va_start(vap, fmt);
+	vfprintf(stderr, fmt, vap);
+	va_end(vap);
+	if (errno) {
+		fputc(':', stderr);
+		fputc(' ', stderr);
+		fputs(strerror(errno), stderr);
+	}
+	fputc('\n', stderr);
+	return;
+}
+
 static size_t
 prnt(const char *str, size_t len, size_t *restrict strk, size_t n)
 {
 	size_t s = 0U;
 
 	for (size_t j = len; j > n; j--) {
-		if (!strk[j]) {
+		if (strk[j] <= thresh) {
 			continue;
 		}
 		fwrite(str, 1, j, stdout);
@@ -143,7 +158,22 @@ main(int argc, char *argv[])
 		goto out;
 	}
 
-	rc = cprfx(stdin) < 0;
+	thresh -= !!argi->verbose_flag;
+
+	if (!argi->nargs) {
+		rc = cprfx(stdin) < 0;
+	} else for (size_t i = 0U; i < argi->nargs; i++) {
+		FILE *fp;
+
+		if (UNLIKELY((fp = fopen(argi->args[i], "r")) == NULL)) {
+			error("\
+Error: cannot open file `%s'", argi->args[i]);
+			rc = 1;
+			continue;
+		}
+		rc |= cprfx(fp) < 0;
+		fclose(fp);
+	}
 
 out:
 	yuck_free(argi);
