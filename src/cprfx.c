@@ -114,7 +114,7 @@ cprfx(FILE *fp)
 		if (UNLIKELY(plen < llen)) {
 			prev = realloc(prev, plen = llen);
 		}
-		memcpy(prev, line, prrd = nrd);
+		memcpy(prev + i, line + i, (prrd = nrd) - i);
 	}
 	/* last one then */
 	prnt(prev, prrd, strk, 0U);
