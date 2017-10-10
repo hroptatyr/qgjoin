@@ -56,6 +56,24 @@
 #include "nifty.h"
 
 
+static size_t
+prnt(const char *str, size_t len, size_t *restrict strk, size_t n)
+{
+	size_t s = 0U;
+
+	for (size_t j = len; j > n; j--) {
+		if (!strk[j]) {
+			continue;
+		}
+		fwrite(str, 1, j, stdout);
+		fputc('\t', stdout);
+		fprintf(stdout, "%zu", s += strk[j]);
+		fputc('\n', stdout);
+		strk[j] = 0U;
+	}
+	return s;
+}
+
 static int
 cprfx(FILE *fp)
 {
@@ -63,8 +81,8 @@ cprfx(FILE *fp)
 	size_t llen = 0UL;
 	char *prev = NULL;
 	size_t plen = 0UL;
-	size_t prvi = 0UL;
-	size_t strk = 0U;
+	size_t prrd = 0UL;
+	size_t *strk = NULL, zstrk = 0U;
 
 	for (ssize_t nrd; (nrd = getline(&line, &llen, fp)) > 0;) {
 		size_t i;
@@ -72,26 +90,42 @@ cprfx(FILE *fp)
 		nrd -= line[nrd - 1] == '\n';
 		line[nrd] = '\0';
 
-		for (i = 0U; i < plen &&
+		for (i = 0U; i < prrd &&
 			     i < (size_t)nrd && prev[i] == line[i]; i++);
 
-		if (i < prvi) {
-			fwrite(prev, 1, prvi, stdout);
-			fputc('\t', stdout);
-			fprintf(stdout, "%zu", strk);
-			fputc('\n', stdout);
-			strk = 0U;
+		if (UNLIKELY((size_t)nrd >= zstrk)) {
+			size_t nuz = (zstrk * 2U) ?: 256U;
+			while (nuz <= (size_t)nrd) {
+				nuz *= 2U;
+			}
+			strk = realloc(strk, nuz * sizeof(*strk));
+			memset(strk + zstrk, 0, (nuz - zstrk) * sizeof(*strk));
+			zstrk = nuz;
 		}
-		strk++;
+
+		/* print the old stuff */
+		with (size_t s = prnt(prev, prrd, strk, i)) {
+			/* start counting anew */
+			strk[nrd]++;
+			strk[i] += s;
+		}
 
 		/* save line for next time */
-		if (UNLIKELY(plen < (size_t)nrd)) {
-			prev = realloc(prev, plen = nrd);
+		if (UNLIKELY(plen < llen)) {
+			prev = realloc(prev, plen = llen);
 		}
-		memcpy(prev, line, nrd);
-		prvi = i;
+		memcpy(prev, line, prrd = nrd);
 	}
+	/* last one then */
+	prnt(prev, prrd, strk, 0U);
+
 	free(line);
+	if (prev) {
+		free(prev);
+	}
+	if (strk) {
+		free(strk);
+	}
 	return 0;
 }
 
