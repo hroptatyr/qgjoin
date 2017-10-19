@@ -31,6 +31,11 @@ qgstat_SOURCES = qgstat.c qgstat.yuck
 qgstat_SOURCES += version.c version.h
 BUILT_SOURCES += qgstat.yucc
 
+bin_PROGRAMS += cdiff
+cdiff_SOURCES = cdiff.c cdiff.yuck
+cdiff_SOURCES += version.c version.h
+BUILT_SOURCES += cdiff.yucc
+
 bin_PROGRAMS += cprfx
 cprfx_SOURCES = cprfx.c cprfx.yuck
 cprfx_SOURCES += version.c version.h
