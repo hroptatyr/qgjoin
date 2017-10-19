@@ -51,6 +51,8 @@
 #endif	/* HAVE_DFP754_H */
 #include "nifty.h"
 
+static unsigned int spcp;
+
 
 static void
 __attribute__((format(printf, 1, 2)))
@@ -88,6 +90,10 @@ cdiff(FILE *fp)
 		for (i = 0U; i < prrd &&
 			     i < (size_t)nrd && prev[i] == line[i]; i++);
 
+		if (spcp) {
+			/* go back to previous whitespace */
+			for (; i > 0U && (unsigned char)line[i - 1] > ' '; i--);
+		}
 		memset(line, ' ', i);
 		fwrite(line, 1, nrd, stdout);
 		fputc('\n', stdout);
@@ -115,6 +121,8 @@ main(int argc, char *argv[])
 		rc = 1;
 		goto out;
 	}
+
+	spcp = argi->whitespace_flag;
 
 	if (!argi->nargs) {
 		rc = cdiff(stdin) < 0;
