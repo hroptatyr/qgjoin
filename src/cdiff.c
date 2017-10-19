@@ -45,15 +45,29 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <errno.h>
-#include <sys/socket.h>
-#include <fcntl.h>
-#include <sys/time.h>
-#include <time.h>
 #include <assert.h>
 #if defined HAVE_DFP754_H
 # include <dfp754.h>
 #endif	/* HAVE_DFP754_H */
 #include "nifty.h"
+
+
+static void
+__attribute__((format(printf, 1, 2)))
+error(const char *fmt, ...)
+{
+	va_list vap;
+	va_start(vap, fmt);
+	vfprintf(stderr, fmt, vap);
+	va_end(vap);
+	if (errno) {
+		fputc(':', stderr);
+		fputc(' ', stderr);
+		fputs(strerror(errno), stderr);
+	}
+	fputc('\n', stderr);
+	return;
+}
 
 
 static int
@@ -63,26 +77,26 @@ cdiff(FILE *fp)
 	size_t llen = 0UL;
 	char *prev = NULL;
 	size_t plen = 0UL;
+	size_t prrd = 0UL;
 
-	for (ssize_t nrd; (nrd = getline(&line, &llen, stdin)) > 0;) {
+	for (ssize_t nrd; (nrd = getline(&line, &llen, fp)) > 0;) {
 		size_t i;
 
-		if (LIKELY(line[nrd - 1U] == '\n')) {
-			nrd--;
-		}
-		for (i = 0U; i < plen && i < nrd && prev[i] == line[i]; i++) {
-			putchar(' ');
-		}
-		if (LIKELY(i < nrd)) {
-			fwrite(line + i, 1, nrd - i, stdout);
-		}
-		putchar('\n');
+		nrd -= line[nrd - 1] == '\n';
+		line[nrd] = '\0';
+
+		for (i = 0U; i < prrd &&
+			     i < (size_t)nrd && prev[i] == line[i]; i++);
+
+		memset(line, ' ', i);
+		fwrite(line, 1, nrd, stdout);
+		fputc('\n', stdout);
 
 		/* save line for next time */
-		if (UNLIKELY(plen < nrd)) {
+		if (UNLIKELY(plen < (size_t)nrd)) {
 			prev = realloc(prev, plen = nrd);
 		}
-		memcpy(prev, line, nrd);
+		memcpy(prev + i, line + i, (prrd = nrd) - i);
 	}
 	free(line);
 	return 0;
@@ -102,7 +116,20 @@ main(int argc, char *argv[])
 		goto out;
 	}
 
-	rc = cdiff(stdin) < 0;
+	if (!argi->nargs) {
+		rc = cdiff(stdin) < 0;
+	} else for (size_t i = 0U; i < argi->nargs; i++) {
+		FILE *fp;
+
+		if (UNLIKELY((fp = fopen(argi->args[i], "r")) == NULL)) {
+			error("\
+Error: cannot open file `%s'", argi->args[i]);
+			rc = 1;
+			continue;
+		}
+		rc |= cdiff(fp) < 0;
+		fclose(fp);
+	}
 
 out:
 	yuck_free(argi);
